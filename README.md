@@ -1,17 +1,62 @@
-# chocotto_memo
+# Chocotto Memo
+ちょっとしたメモを書けるアプリ
 
-A new Flutter project.
+# ちょこっとメモ (Chocotto-Memo) - Project Spec
 
-## Getting Started
+「共有なし・クラウドなし・爆速起動」
+プライバシーと手触りの良さに特化した、スタンドアロン型のAndroidメモアプリ。
 
-This project is a starting point for a Flutter application.
+## 1. コンセプト
+- **オフラインファースト**: 外部へのデータ送信なし。端末内完結の安心感。
+- **爆速体験**: 起動から入力までを最短ルートで。
+- **安心設計**: 自動保存と世代履歴により「消えてしまった」を防ぐ。
 
-A few resources to get you started if this is your first Flutter project:
+## 2. 画面構成とUI
+### メイン画面（2タブ構成）
+1. **お気に入りタブ (デフォルト着地)**
+   - 星マークを付けたメモのみを表示。
+   - 手動並び替え（ドラッグ＆ドロップ）に対応し、自分好みの配置を維持。
+2. **すべてのメモタブ (スワイプで移動)**
+   - 全メモを「最終更新日順」で表示。
+   - 検索バーを上部に配置し、過去のメモへ素早くアクセス。
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### メモ入力画面
+- 開いた瞬間にキーボードを自動フォーカス。
+- **自動保存**: 画面を閉じる・戻るだけで保存完了。
+- **履歴管理**: 直近数世代のバージョンを保存し、古い内容への復元が可能。
+- **リアルタイム文字数カウント**: 常に画面内に表示。
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 3. 主要機能
+- **絵文字タグ & 色分け**: 文字ではなく絵文字で直感的にカテゴリ分類。
+- **ゴミ箱機能**: 削除したメモは30日間保持。
+- **通知・リマインダー**:
+  - メモに通知時間を設定し、タスクとして運用可能。
+  - 繰り返し通知（毎日/毎週など）に対応。
+- **Android特化機能**:
+  - **ホーム画面ウィジェット**: メモの閲覧と新規作成ショートカット。
+  - **クイック設定パネル**: 通知領域からの即時起動。
+- **パーソナライズ**:
+  - ダークモード（システム連動）。
+  - フォントサイズ変更（システム準拠を基本とする）。
+
+## 4. 収益化モデル（予定）
+- **基本無料（広告あり）**
+- **Pro版（アプリ内課金：買い切り）**:
+  - 広告の完全非表示。
+  - 限定デザインテーマの解放。
+- **テスター特典**:
+  - クローズドテスト協力者には、Google Play公式プロモーションコードを配布し、Pro版を無料提供。
+
+## 5. 技術スタック（選定理由）
+- **Framework**: Flutter (将来的なiOS展開を見据えた選定)
+- **Database**: Hive または SQLite (オフラインでの高速な読み書き)
+- **Language**: Dart
+- **Infrastructure**: 完全ローカル（外部サーバー、クラウド保存なし）
+
+## 6. 開発ロードマップ
+1. [ ] 開発環境構築 (Flutter, Android Studio)
+2. [ ] MVP開発（一覧・入力・自動保存）
+3. [ ] 履歴管理・ゴミ箱・お気に入りロジックの実装
+4. [ ] 通知機能・ウィジェットの実装
+5. [ ] 広告およびアプリ内課金（プロモーションコード）の組み込み
+6. [ ] クローズドテスト（20人・14日間）開始
