@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chocotto_memo/models/memo.dart';
+import 'package:chocotto_memo/notifiers/settings_notifier.dart';
 import 'package:chocotto_memo/screens/home_screen.dart';
 import 'package:chocotto_memo/screens/memo_edit_screen.dart';
+import 'package:chocotto_memo/screens/settings_screen.dart';
+import 'package:chocotto_memo/services/settings_service.dart';
 import 'fake_database_service.dart';
 
 void main() {
   late FakeDatabaseService db;
+  late SettingsNotifier settingsNotifier;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     db = FakeDatabaseService();
+    settingsNotifier = SettingsNotifier(SettingsService());
+    await settingsNotifier.load();
   });
 
   Future<void> pumpHomeScreen(WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(home: HomeScreen(db: db)));
+    await tester.pumpWidget(
+      MaterialApp(home: HomeScreen(db: db, settingsNotifier: settingsNotifier)),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -101,6 +111,21 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(MemoEditScreen), findsOneWidget);
+    });
+
+    testWidgets('AppBarに設定アイコンボタンが表示される', (WidgetTester tester) async {
+      await pumpHomeScreen(tester);
+
+      expect(find.byIcon(Icons.settings), findsOneWidget);
+    });
+
+    testWidgets('設定アイコンをタップするとSettingsScreenへ遷移する', (WidgetTester tester) async {
+      await pumpHomeScreen(tester);
+
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SettingsScreen), findsOneWidget);
     });
   });
 }
