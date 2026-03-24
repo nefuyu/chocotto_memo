@@ -1,11 +1,9 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:chocotto_memo/models/app_settings.dart';
 import 'package:chocotto_memo/notifiers/settings_notifier.dart';
 import 'package:chocotto_memo/services/settings_service.dart';
 
 /// 呼び出しごとに異なる遅延でsaveをシミュレートするFakeSettingsService。
-/// delays[0]が1回目のsave遅延、delays[1]が2回目のsave遅延。
 class DelayedSettingsService implements SettingsService {
   final List<AppSettings> savedSnapshots = [];
   final List<Duration> delays;
@@ -26,11 +24,29 @@ class DelayedSettingsService implements SettingsService {
   }
 }
 
+/// saveが指定回数だけ失敗し、その後は成功するFakeSettingsService。
+class FailingSettingsService implements SettingsService {
+  final List<AppSettings> savedSnapshots = [];
+  int failCount;
+
+  FailingSettingsService({this.failCount = 1});
+
+  @override
+  Future<AppSettings> load() async => const AppSettings();
+
+  @override
+  Future<void> save(AppSettings settings) async {
+    if (failCount > 0) {
+      failCount--;
+      throw Exception('保存失敗');
+    }
+    savedSnapshots.add(settings);
+  }
+}
+
 void main() {
   group('SettingsNotifier 並行書き込みの直列化', () {
     test('1回目saveが遅く2回目saveが速い場合でも最後のスナップショットは最新状態を持つ', () async {
-      // 1回目: 30ms (遅い), 2回目: 5ms (速い)
-      // 直列化なしだと2回目が先に完了し、後から1回目が完了して古い値で上書きされる
       final service = DelayedSettingsService([
         const Duration(milliseconds: 30),
         const Duration(milliseconds: 5),
@@ -38,12 +54,10 @@ void main() {
       final notifier = SettingsNotifier(service);
       await notifier.load();
 
-      // awaitせずに連続呼び出し（RadioのonChangedと同じ状況）
       final f1 = notifier.updateTheme(AppTheme.dark);
       final f2 = notifier.updateFontSize(AppFontSize.large);
       await Future.wait([f1, f2]);
 
-      // 最後に保存されたスナップショットは最新の状態（dark + large）であること
       expect(service.savedSnapshots.last.theme, AppTheme.dark);
       expect(service.savedSnapshots.last.fontSize, AppFontSize.large);
     });
@@ -62,6 +76,48 @@ void main() {
 
       expect(notifier.settings.theme, AppTheme.dark);
       expect(notifier.settings.fontSize, AppFontSize.large);
+    });
+  });
+
+  group('SettingsNotifier エラー回復', () {
+    test('初期状態ではsaveErrorはnull', () async {
+      final notifier = SettingsNotifier(FailingSettingsService(failCount: 0));
+      await notifier.load();
+      expect(notifier.saveError, isNull);
+    });
+
+    test('save失敗時にsaveErrorがセットされる', () async {
+      final notifier = SettingsNotifier(FailingSettingsService(failCount: 1));
+      await notifier.load();
+
+      await notifier.updateTheme(AppTheme.dark);
+
+      expect(notifier.saveError, isNotNull);
+    });
+
+    test('save失敗後も次の更新操作は実行できる（キューがリセットされる）', () async {
+      // 1回目は失敗、2回目は成功
+      final service = FailingSettingsService(failCount: 1);
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+
+      await notifier.updateTheme(AppTheme.dark); // 失敗
+      await notifier.updateFontSize(AppFontSize.large); // 成功するはず
+
+      expect(service.savedSnapshots, isNotEmpty);
+      expect(service.savedSnapshots.last.fontSize, AppFontSize.large);
+    });
+
+    test('save成功時にsaveErrorがクリアされる', () async {
+      final service = FailingSettingsService(failCount: 1);
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+
+      await notifier.updateTheme(AppTheme.dark); // 失敗 → saveError セット
+      expect(notifier.saveError, isNotNull);
+
+      await notifier.updateFontSize(AppFontSize.large); // 成功 → saveError クリア
+      expect(notifier.saveError, isNull);
     });
   });
 }

@@ -6,10 +6,12 @@ class SettingsNotifier extends ChangeNotifier {
   final SettingsService _service;
   AppSettings _settings = const AppSettings();
   Future<void> _pendingSave = Future.value();
+  String? _saveError;
 
   SettingsNotifier(this._service);
 
   AppSettings get settings => _settings;
+  String? get saveError => _saveError;
 
   Future<void> load() async {
     _settings = await _service.load();
@@ -28,9 +30,23 @@ class SettingsNotifier extends ChangeNotifier {
     await _queueSave();
   }
 
-  /// 前の保存完了後に最新の _settings を保存するようキューに積む。
+  /// 保存を直列化してキューに積む。
+  /// save失敗時は_pendingSaveを正常完了状態に戻し、次回保存を可能にする。
   Future<void> _queueSave() {
-    _pendingSave = _pendingSave.whenComplete(() => _service.save(_settings));
+    _pendingSave = _pendingSave
+        .catchError((_) {}) // 前回のエラーがあっても次の保存をブロックしない
+        .then((_) async {
+          try {
+            await _service.save(_settings);
+            if (_saveError != null) {
+              _saveError = null;
+              notifyListeners();
+            }
+          } catch (_) {
+            _saveError = '設定の保存に失敗しました';
+            notifyListeners();
+          }
+        });
     return _pendingSave;
   }
 }

@@ -6,6 +6,13 @@ import 'package:chocotto_memo/notifiers/settings_notifier.dart';
 import 'package:chocotto_memo/screens/settings_screen.dart';
 import 'package:chocotto_memo/services/settings_service.dart';
 
+class FailingSettingsService implements SettingsService {
+  @override
+  Future<AppSettings> load() async => const AppSettings();
+  @override
+  Future<void> save(AppSettings settings) async => throw Exception('保存失敗');
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -89,6 +96,17 @@ void main() {
         find.byType(RadioListTile<AppFontSize>),
       ).firstWhere((r) => r.value == AppFontSize.medium);
       expect(radio.groupValue, AppFontSize.medium);
+    });
+
+    testWidgets('save失敗時にSnackBarが表示される', (tester) async {
+      final notifier = SettingsNotifier(FailingSettingsService());
+      await notifier.load();
+      await tester.pumpWidget(MaterialApp(
+        home: SettingsScreen(notifier: notifier),
+      ));
+      await tester.tap(find.text('ダーク'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsOneWidget);
     });
   });
 }
