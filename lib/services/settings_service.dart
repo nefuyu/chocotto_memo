@@ -7,12 +7,17 @@ class SettingsService {
 
   Future<AppSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final themeIndex = prefs.getInt(_keyTheme) ?? AppTheme.system.index;
-    final fontSizeIndex = prefs.getInt(_keyFontSize) ?? AppFontSize.medium.index;
+    final themeIndex = prefs.getInt(_keyTheme);
+    final fontSizeIndex = prefs.getInt(_keyFontSize);
     return AppSettings(
-      theme: AppTheme.values[themeIndex],
-      fontSize: AppFontSize.values[fontSizeIndex],
+      theme: _parseEnum(AppTheme.values, themeIndex, AppTheme.system),
+      fontSize: _parseEnum(AppFontSize.values, fontSizeIndex, AppFontSize.medium),
     );
+  }
+
+  T _parseEnum<T>(List<T> values, int? index, T fallback) {
+    if (index == null || index < 0 || index >= values.length) return fallback;
+    return values[index];
   }
 
   Future<void> save(AppSettings settings) async {

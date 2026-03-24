@@ -43,5 +43,27 @@ void main() {
       final settings = await service.load();
       expect(settings.fontSize, AppFontSize.small);
     });
+
+    test('テーマに範囲外のインデックスが保存されていてもデフォルト(system)にフォールバックする', () async {
+      SharedPreferences.setMockInitialValues({'theme': 999});
+      final service = SettingsService();
+      final settings = await service.load();
+      expect(settings.theme, AppTheme.system);
+    });
+
+    test('フォントサイズに範囲外のインデックスが保存されていてもデフォルト(medium)にフォールバックする', () async {
+      SharedPreferences.setMockInitialValues({'fontSize': 999});
+      final service = SettingsService();
+      final settings = await service.load();
+      expect(settings.fontSize, AppFontSize.medium);
+    });
+
+    test('負のインデックスが保存されていてもデフォルトにフォールバックする', () async {
+      SharedPreferences.setMockInitialValues({'theme': -1, 'fontSize': -1});
+      final service = SettingsService();
+      final settings = await service.load();
+      expect(settings.theme, AppTheme.system);
+      expect(settings.fontSize, AppFontSize.medium);
+    });
   });
 }
