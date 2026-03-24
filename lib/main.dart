@@ -39,12 +39,15 @@ class MyApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(settings.fontScale),
-            ),
-            child: child!,
-          ),
+          builder: (context, child) {
+            final systemScale = MediaQuery.of(context).textScaler.scale(1.0);
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(systemScale * settings.fontScale),
+              ),
+              child: child!,
+            );
+          },
           home: HomeScreen(db: db, settingsNotifier: settingsNotifier),
         );
       },
