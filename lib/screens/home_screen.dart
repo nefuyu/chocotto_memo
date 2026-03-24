@@ -1,10 +1,42 @@
 import 'package:flutter/material.dart';
 import '../models/memo.dart';
+import '../services/database_service.dart';
+import 'memo_edit_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  final List<Memo> memos;
+class HomeScreen extends StatefulWidget {
+  final DatabaseService db;
 
-  const HomeScreen({super.key, required this.memos});
+  const HomeScreen({super.key, required this.db});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Memo> _memos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMemos();
+  }
+
+  Future<void> _loadMemos() async {
+    final memos = await widget.db.getAll();
+    setState(() {
+      _memos = memos;
+    });
+  }
+
+  Future<void> _navigateToEdit({Memo? memo}) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MemoEditScreen(db: widget.db, memo: memo),
+      ),
+    );
+    _loadMemos();
+  }
 
   String _formatDate(DateTime date) {
     final y = date.year.toString();
@@ -15,21 +47,18 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...memos]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('メモ一覧'),
       ),
-      body: sorted.isEmpty
+      body: _memos.isEmpty
           ? const Center(
               child: Text('メモがありません。右下のボタンから作成しましょう'),
             )
           : ListView.builder(
-              itemCount: sorted.length,
+              itemCount: _memos.length,
               itemBuilder: (context, index) {
-                final memo = sorted[index];
+                final memo = _memos[index];
                 return ListTile(
                   leading: Text(
                     memo.emoji,
@@ -42,13 +71,12 @@ class HomeScreen extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   trailing: Text(_formatDate(memo.createdAt)),
+                  onTap: () => _navigateToEdit(memo: memo),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: メモ作成画面への遷移
-        },
+        onPressed: () => _navigateToEdit(),
         child: const Icon(Icons.add),
       ),
     );
