@@ -20,12 +20,14 @@ class SettingsNotifier extends ChangeNotifier {
 
   Future<void> updateTheme(AppTheme theme) async {
     _settings = AppSettings(theme: theme, fontSize: _settings.fontSize);
+    _saveError = null; // 新しい操作開始時に前のエラーをクリア
     notifyListeners();
     await _queueSave();
   }
 
   Future<void> updateFontSize(AppFontSize fontSize) async {
     _settings = AppSettings(theme: _settings.theme, fontSize: fontSize);
+    _saveError = null; // 新しい操作開始時に前のエラーをクリア
     notifyListeners();
     await _queueSave();
   }

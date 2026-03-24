@@ -79,6 +79,35 @@ void main() {
     });
   });
 
+  group('SettingsNotifier saveErrorのクリアタイミング', () {
+    test('updateTheme呼び出し直後（save完了前）にsaveErrorがクリアされる', () async {
+      final service = FailingSettingsService(failCount: 1);
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+
+      await notifier.updateTheme(AppTheme.dark); // 失敗 → saveErrorセット
+      expect(notifier.saveError, isNotNull);
+
+      // awaitせず呼び出す → 同期処理でsaveErrorがクリアされるはず
+      final future = notifier.updateFontSize(AppFontSize.large);
+      expect(notifier.saveError, isNull); // save完了前の時点でクリア済み
+      await future;
+    });
+
+    test('updateFontSize呼び出し直後（save完了前）にsaveErrorがクリアされる', () async {
+      final service = FailingSettingsService(failCount: 1);
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+
+      await notifier.updateFontSize(AppFontSize.large); // 失敗 → saveErrorセット
+      expect(notifier.saveError, isNotNull);
+
+      final future = notifier.updateTheme(AppTheme.dark);
+      expect(notifier.saveError, isNull);
+      await future;
+    });
+  });
+
   group('SettingsNotifier エラー回復', () {
     test('初期状態ではsaveErrorはnull', () async {
       final notifier = SettingsNotifier(FailingSettingsService(failCount: 0));

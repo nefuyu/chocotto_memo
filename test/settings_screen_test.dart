@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +12,24 @@ class FailingSettingsService implements SettingsService {
   Future<AppSettings> load() async => const AppSettings();
   @override
   Future<void> save(AppSettings settings) async => throw Exception('保存失敗');
+}
+
+/// Completerで保存完了タイミングを外部から制御できるFakeSettingsService。
+class ControllableSettingsService implements SettingsService {
+  Completer<void>? _completer;
+
+  void completeWithError() =>
+      _completer?.completeError(Exception('保存失敗'));
+  void completeSuccess() => _completer?.complete();
+
+  @override
+  Future<AppSettings> load() async => const AppSettings();
+
+  @override
+  Future<void> save(AppSettings settings) {
+    _completer = Completer<void>();
+    return _completer!.future;
+  }
 }
 
 void main() {
@@ -107,6 +126,41 @@ void main() {
       await tester.tap(find.text('ダーク'));
       await tester.pumpAndSettle();
       expect(find.byType(SnackBar), findsOneWidget);
+    });
+
+    testWidgets('save失敗後の次の設定変更でSnackBarが誤って再表示されない', (tester) async {
+      final service = ControllableSettingsService();
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+      await tester.pumpWidget(MaterialApp(
+        home: SettingsScreen(notifier: notifier),
+      ));
+
+      // 1回目: ダークをタップ → save開始（Completerで保留中）
+      await tester.tap(find.text('ダーク'));
+      await tester.pump();
+      expect(find.byType(SnackBar), findsNothing); // まだ失敗していない
+
+      // save失敗 → SnackBar表示
+      service.completeWithError();
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsOneWidget);
+
+      // SnackBarが消えるまで時間を進める
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsNothing);
+
+      // saveErrorが残っている状態でライトをタップ → save開始（Completerで保留中）
+      await tester.tap(find.text('ライト'));
+      await tester.pump(); // optimistic updateのフレーム（save完了前）
+
+      // このタイミングでSnackBarが誤表示されないこと
+      expect(find.byType(SnackBar), findsNothing);
+
+      // save成功で終了
+      service.completeSuccess();
+      await tester.pumpAndSettle();
     });
   });
 }
