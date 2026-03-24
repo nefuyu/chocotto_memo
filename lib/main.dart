@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:chocotto_memo/screens/home_screen.dart';
+import 'package:chocotto_memo/services/database_service.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final db = DatabaseService();
+  await db.open();
+  runApp(MyApp(db: db));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final DatabaseService db;
+
+  const MyApp({super.key, required this.db});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +22,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomeScreen(memos: []),
+      home: HomeScreen(db: db),
     );
   }
 }
