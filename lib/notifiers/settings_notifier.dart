@@ -5,6 +5,7 @@ import '../services/settings_service.dart';
 class SettingsNotifier extends ChangeNotifier {
   final SettingsService _service;
   AppSettings _settings = const AppSettings();
+  Future<void> _pendingSave = Future.value();
 
   SettingsNotifier(this._service);
 
@@ -17,13 +18,19 @@ class SettingsNotifier extends ChangeNotifier {
 
   Future<void> updateTheme(AppTheme theme) async {
     _settings = AppSettings(theme: theme, fontSize: _settings.fontSize);
-    await _service.save(_settings);
     notifyListeners();
+    await _queueSave();
   }
 
   Future<void> updateFontSize(AppFontSize fontSize) async {
     _settings = AppSettings(theme: _settings.theme, fontSize: fontSize);
-    await _service.save(_settings);
     notifyListeners();
+    await _queueSave();
+  }
+
+  /// 前の保存完了後に最新の _settings を保存するようキューに積む。
+  Future<void> _queueSave() {
+    _pendingSave = _pendingSave.whenComplete(() => _service.save(_settings));
+    return _pendingSave;
   }
 }
