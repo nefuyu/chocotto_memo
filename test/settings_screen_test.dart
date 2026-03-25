@@ -237,6 +237,29 @@ void main() {
       service.completeSuccess();
       await tester.pumpAndSettle();
     });
+
+    testWidgets('[P2] save失敗後にラジオをタップしても古いSnackBarが再表示されない', (tester) async {
+      final service = ControllableSettingsService();
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+      await tester.pumpWidget(MaterialApp(home: SettingsScreen(notifier: notifier)));
+
+      // 保存 → 失敗 → SnackBar表示
+      await tester.tap(find.text('保存'));
+      await tester.pump();
+      service.completeWithError();
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsOneWidget);
+
+      // SnackBarが消えるまで時間を進める
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      // ラジオをタップ（save()は呼ばない）→ 古いSnackBarが再表示されないこと
+      await tester.tap(find.text('ダーク'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsNothing);
+    });
   });
 
   group('SettingsScreen 離脱時プレビュー破棄', () {

@@ -31,12 +31,14 @@ class SettingsNotifier extends ChangeNotifier {
 
   /// テーマをプレビュー更新（保存はしない）
   void updateThemePreview(AppTheme theme) {
+    _saveError = null; // 古いエラーを即時クリアしてSnackBarの再表示を防ぐ
     _previewSettings = AppSettings(theme: theme, fontSize: _previewSettings.fontSize);
     notifyListeners();
   }
 
   /// フォントサイズをプレビュー更新（保存はしない）
   void updateFontSizePreview(AppFontSize fontSize) {
+    _saveError = null; // 古いエラーを即時クリアしてSnackBarの再表示を防ぐ
     _previewSettings = AppSettings(theme: _previewSettings.theme, fontSize: fontSize);
     notifyListeners();
   }
@@ -59,6 +61,7 @@ class SettingsNotifier extends ChangeNotifier {
     try {
       await _service.save(snapshot);
       _savedSettings = snapshot;
+      _previewSettings = snapshot; // 離脱→discardPreview後も正しい値に戻す
     } catch (_) {
       _saveError = '設定の保存に失敗しました';
       _previewSettings = _savedSettings; // プレビューを巻き戻す

@@ -108,6 +108,22 @@ void main() {
       expect(notifier.savedSettings.theme, AppTheme.system);
     });
 
+    test('[P1] save()成功後にdiscardPreviewが呼ばれていてもsettingsはsavedSettingsと一致する', () async {
+      // 保存ボタンタップ直後に画面を離脱した場合（discardPreview→save完了 の順）の回帰テスト
+      final service = ControllableSettingsService();
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+
+      notifier.updateThemePreview(AppTheme.dark);
+      final saveFuture = notifier.save(); // 保存開始（まだ完了していない）
+      notifier.discardPreview(); // 離脱→プレビューをsystem に戻す
+      await saveFuture; // 保存完了
+
+      // 保存成功後はsettingsもsavedSettingsもdarkに揃う
+      expect(notifier.savedSettings.theme, AppTheme.dark);
+      expect(notifier.settings.theme, AppTheme.dark);
+    });
+
     test('save()失敗後に再度save()が成功するとsaveErrorがクリアされる', () async {
       final service = ControllableSettingsService();
       service.setNextSaveError(Exception('保存失敗'));
@@ -172,6 +188,34 @@ void main() {
       await Future.wait([f1, f2]);
 
       expect(service.saveCallCount, 1); // 1回しか保存されない
+    });
+  });
+
+  group('SettingsNotifier プレビュー更新でエラークリア（P2）', () {
+    test('save()失敗後にupdateThemePreviewを呼ぶとsaveErrorがクリアされる', () async {
+      final service = ControllableSettingsService();
+      service.setNextSaveError(Exception('保存失敗'));
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+
+      await notifier.save(); // 失敗
+      expect(notifier.saveError, isNotNull);
+
+      notifier.updateThemePreview(AppTheme.dark); // プレビュー更新
+      expect(notifier.saveError, isNull); // 即時クリアされる
+    });
+
+    test('save()失敗後にupdateFontSizePreviewを呼ぶとsaveErrorがクリアされる', () async {
+      final service = ControllableSettingsService();
+      service.setNextSaveError(Exception('保存失敗'));
+      final notifier = SettingsNotifier(service);
+      await notifier.load();
+
+      await notifier.save(); // 失敗
+      expect(notifier.saveError, isNotNull);
+
+      notifier.updateFontSizePreview(AppFontSize.large); // プレビュー更新
+      expect(notifier.saveError, isNull); // 即時クリアされる
     });
   });
 
