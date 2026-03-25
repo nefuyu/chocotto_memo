@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../models/memo.dart';
+import '../notifiers/settings_notifier.dart';
 import '../services/database_service.dart';
 import 'memo_edit_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final DatabaseService db;
+  final SettingsNotifier settingsNotifier;
 
-  const HomeScreen({super.key, required this.db});
+  const HomeScreen({super.key, required this.db, required this.settingsNotifier});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -50,6 +53,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('メモ一覧'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SettingsScreen(notifier: widget.settingsNotifier),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: _memos.isEmpty
           ? const Center(

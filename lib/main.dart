@@ -1,28 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:chocotto_memo/notifiers/settings_notifier.dart';
 import 'package:chocotto_memo/screens/home_screen.dart';
 import 'package:chocotto_memo/services/database_service.dart';
+import 'package:chocotto_memo/services/settings_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = DatabaseService();
   await db.open();
-  runApp(MyApp(db: db));
+  final notifier = SettingsNotifier(SettingsService());
+  await notifier.load();
+  runApp(MyApp(db: db, settingsNotifier: notifier));
 }
 
 class MyApp extends StatelessWidget {
   final DatabaseService db;
+  final SettingsNotifier settingsNotifier;
 
-  const MyApp({super.key, required this.db});
+  const MyApp({super.key, required this.db, required this.settingsNotifier});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Chocotto Memo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: HomeScreen(db: db),
+    return ListenableBuilder(
+      listenable: settingsNotifier,
+      builder: (context, _) {
+        final settings = settingsNotifier.settings;
+        return MaterialApp(
+          title: 'Chocotto Memo',
+          themeMode: settings.themeMode,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          builder: (context, child) {
+            final systemScale = MediaQuery.of(context).textScaler.scale(1.0);
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(systemScale * settings.fontScale),
+              ),
+              child: child!,
+            );
+          },
+          home: HomeScreen(db: db, settingsNotifier: settingsNotifier),
+        );
+      },
     );
   }
 }
