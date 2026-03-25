@@ -65,5 +65,17 @@ void main() {
       expect(settings.theme, AppTheme.system);
       expect(settings.fontSize, AppFontSize.medium);
     });
+
+    test('save()はテーマとフォントサイズを両方正しく書き込む', () async {
+      final service = SettingsService();
+      // 例外が投げられなければ書き込み成功（setIntがfalseを返した場合は例外になる）
+      await expectLater(
+        service.save(const AppSettings(theme: AppTheme.dark, fontSize: AppFontSize.large)),
+        completes,
+      );
+      final settings = await service.load();
+      expect(settings.theme, AppTheme.dark);
+      expect(settings.fontSize, AppFontSize.large);
+    });
   });
 }

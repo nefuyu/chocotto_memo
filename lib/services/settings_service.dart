@@ -22,7 +22,10 @@ class SettingsService {
 
   Future<void> save(AppSettings settings) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyTheme, settings.theme.index);
-    await prefs.setInt(_keyFontSize, settings.fontSize.index);
+    final themeOk = await prefs.setInt(_keyTheme, settings.theme.index);
+    final fontSizeOk = await prefs.setInt(_keyFontSize, settings.fontSize.index);
+    if (!themeOk || !fontSizeOk) {
+      throw Exception('設定の書き込みに失敗しました');
+    }
   }
 }
