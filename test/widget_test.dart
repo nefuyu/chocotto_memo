@@ -25,7 +25,8 @@ void main() {
     final db = FakeDatabaseService();
     final notifier = SettingsNotifier(SettingsService());
     await notifier.load();
-    await notifier.updateFontSize(AppFontSize.large); // アプリ設定 1.2x
+    notifier.updateFontSizePreview(AppFontSize.large); // アプリ設定 1.2x（プレビュー反映のみ）
+    await notifier.save();
 
     // OSのフォントを1.5xにシミュレート
     await tester.pumpWidget(

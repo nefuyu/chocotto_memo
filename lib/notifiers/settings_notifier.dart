@@ -4,51 +4,67 @@ import '../services/settings_service.dart';
 
 class SettingsNotifier extends ChangeNotifier {
   final SettingsService _service;
-  AppSettings _settings = const AppSettings();
-  Future<void> _pendingSave = Future.value();
+  AppSettings _savedSettings = const AppSettings();
+  AppSettings _previewSettings = const AppSettings();
+  bool _isSaving = false;
   String? _saveError;
 
   SettingsNotifier(this._service);
 
-  AppSettings get settings => _settings;
+  /// UIが表示する設定（プレビュー込み）
+  AppSettings get settings => _previewSettings;
+
+  /// 最後に保存成功した設定
+  AppSettings get savedSettings => _savedSettings;
+
+  /// 保存中かどうか（保存ボタンの制御に使用）
+  bool get isSaving => _isSaving;
+
+  /// 保存エラーメッセージ（nullならエラーなし）
   String? get saveError => _saveError;
 
   Future<void> load() async {
-    _settings = await _service.load();
+    _savedSettings = await _service.load();
+    _previewSettings = _savedSettings;
     notifyListeners();
   }
 
-  Future<void> updateTheme(AppTheme theme) async {
-    _settings = AppSettings(theme: theme, fontSize: _settings.fontSize);
-    _saveError = null; // 新しい操作開始時に前のエラーをクリア
+  /// テーマをプレビュー更新（保存はしない）
+  void updateThemePreview(AppTheme theme) {
+    _previewSettings = AppSettings(theme: theme, fontSize: _previewSettings.fontSize);
     notifyListeners();
-    await _queueSave();
   }
 
-  Future<void> updateFontSize(AppFontSize fontSize) async {
-    _settings = AppSettings(theme: _settings.theme, fontSize: fontSize);
-    _saveError = null; // 新しい操作開始時に前のエラーをクリア
+  /// フォントサイズをプレビュー更新（保存はしない）
+  void updateFontSizePreview(AppFontSize fontSize) {
+    _previewSettings = AppSettings(theme: _previewSettings.theme, fontSize: fontSize);
     notifyListeners();
-    await _queueSave();
   }
 
-  /// 保存を直列化してキューに積む。
-  /// save失敗時は_pendingSaveを正常完了状態に戻し、次回保存を可能にする。
-  Future<void> _queueSave() {
-    _pendingSave = _pendingSave
-        .catchError((_) {}) // 前回のエラーがあっても次の保存をブロックしない
-        .then((_) async {
-          try {
-            await _service.save(_settings);
-            if (_saveError != null) {
-              _saveError = null;
-              notifyListeners();
-            }
-          } catch (_) {
-            _saveError = '設定の保存に失敗しました';
-            notifyListeners();
-          }
-        });
-    return _pendingSave;
+  /// プレビューを破棄し、保存済み設定に戻す（画面離脱時に呼ぶ）
+  void discardPreview() {
+    _previewSettings = _savedSettings;
+    _saveError = null;
+    notifyListeners();
+  }
+
+  /// 現在のプレビュー設定を保存する
+  Future<void> save() async {
+    if (_isSaving) return; // 排他制御
+    _isSaving = true;
+    _saveError = null;
+    notifyListeners();
+
+    final snapshot = _previewSettings;
+    try {
+      await _service.save(snapshot);
+      _savedSettings = snapshot;
+    } catch (_) {
+      _saveError = '設定の保存に失敗しました';
+      _previewSettings = _savedSettings; // プレビューを巻き戻す
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
   }
 }

@@ -21,26 +21,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     widget.notifier.removeListener(_onNotifierChanged);
+    widget.notifier.discardPreview(); // 保存せず離脱した場合はプレビューを破棄
     super.dispose();
   }
 
   void _onNotifierChanged() {
-    if (widget.notifier.saveError != null) {
+    if (!mounted) return;
+    final error = widget.notifier.saveError;
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.notifier.saveError!)),
+        SnackBar(content: Text(error)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('設定')),
-      body: ListenableBuilder(
-        listenable: widget.notifier,
-        builder: (context, _) {
-          final settings = widget.notifier.settings;
-          return ListView(
+    return ListenableBuilder(
+      listenable: widget.notifier,
+      builder: (context, _) {
+        final settings = widget.notifier.settings;
+        final isSaving = widget.notifier.isSaving;
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('設定'),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => widget.notifier.save(),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('保存'),
+              ),
+            ],
+          ),
+          body: ListView(
             children: [
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -50,19 +68,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: const Text('システム'),
                 value: AppTheme.system,
                 groupValue: settings.theme,
-                onChanged: (v) => widget.notifier.updateTheme(v!),
+                onChanged: isSaving ? null : (v) => widget.notifier.updateThemePreview(v!),
               ),
               RadioListTile<AppTheme>(
                 title: const Text('ライト'),
                 value: AppTheme.light,
                 groupValue: settings.theme,
-                onChanged: (v) => widget.notifier.updateTheme(v!),
+                onChanged: isSaving ? null : (v) => widget.notifier.updateThemePreview(v!),
               ),
               RadioListTile<AppTheme>(
                 title: const Text('ダーク'),
                 value: AppTheme.dark,
                 groupValue: settings.theme,
-                onChanged: (v) => widget.notifier.updateTheme(v!),
+                onChanged: isSaving ? null : (v) => widget.notifier.updateThemePreview(v!),
               ),
               const Divider(),
               const Padding(
@@ -73,24 +91,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: const Text('小'),
                 value: AppFontSize.small,
                 groupValue: settings.fontSize,
-                onChanged: (v) => widget.notifier.updateFontSize(v!),
+                onChanged: isSaving ? null : (v) => widget.notifier.updateFontSizePreview(v!),
               ),
               RadioListTile<AppFontSize>(
                 title: const Text('中'),
                 value: AppFontSize.medium,
                 groupValue: settings.fontSize,
-                onChanged: (v) => widget.notifier.updateFontSize(v!),
+                onChanged: isSaving ? null : (v) => widget.notifier.updateFontSizePreview(v!),
               ),
               RadioListTile<AppFontSize>(
                 title: const Text('大'),
                 value: AppFontSize.large,
                 groupValue: settings.fontSize,
-                onChanged: (v) => widget.notifier.updateFontSize(v!),
+                onChanged: isSaving ? null : (v) => widget.notifier.updateFontSizePreview(v!),
               ),
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
