@@ -114,4 +114,56 @@ void main() {
       expect(memos.first.title, '新タイトル');
     });
   });
+
+  group('MemoEditScreen - バリデーション', () {
+    testWidgets('タイトルが空のまま保存するとSnackBarが表示される', (WidgetTester tester) async {
+      await pumpEditScreen(tester);
+
+      await tester.tap(find.text('保存'));
+      await tester.pump();
+
+      expect(find.text('タイトルを入力してください'), findsOneWidget);
+    });
+
+    testWidgets('タイトルが空のときDBには保存されない', (WidgetTester tester) async {
+      await pumpEditScreen(tester);
+
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      expect(await db.getAll(), isEmpty);
+    });
+  });
+
+  group('MemoEditScreen - DB例外ハンドリング', () {
+    testWidgets('新規作成でDB例外が発生するとSnackBarが表示される', (WidgetTester tester) async {
+      db.shouldThrow = true;
+      await pumpEditScreen(tester);
+
+      await tester.enterText(find.byType(TextField).at(1), 'タイトル');
+      await tester.tap(find.text('保存'));
+      await tester.pump();
+
+      expect(find.text('保存に失敗しました'), findsOneWidget);
+    });
+
+    testWidgets('編集でDB例外が発生するとSnackBarが表示される', (WidgetTester tester) async {
+      db.shouldThrow = false;
+      await db.insert(Memo(
+        title: '既存',
+        content: '',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+      ));
+      final memo = (await db.getAll()).first;
+      db.shouldThrow = true;
+      await pumpEditScreen(tester, memo: memo);
+
+      await tester.enterText(find.byType(TextField).at(1), '更新後');
+      await tester.tap(find.text('保存'));
+      await tester.pump();
+
+      expect(find.text('保存に失敗しました'), findsOneWidget);
+    });
+  });
 }
