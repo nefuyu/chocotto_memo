@@ -38,26 +38,38 @@ class _MemoEditScreenState extends State<MemoEditScreen> {
     final content = _contentController.text.trim();
     final emoji = _emojiController.text.trim();
 
-    if (title.isEmpty) return;
-
-    if (widget.memo == null) {
-      await widget.db.insert(Memo(
-        title: title,
-        content: content,
-        emoji: emoji.isEmpty ? '📝' : emoji,
-        createdAt: DateTime.now(),
-      ));
-    } else {
-      await widget.db.update(Memo(
-        id: widget.memo!.id,
-        title: title,
-        content: content,
-        emoji: emoji.isEmpty ? '📝' : emoji,
-        createdAt: widget.memo!.createdAt,
-      ));
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('タイトルを入力してください')),
+      );
+      return;
     }
 
-    if (mounted) Navigator.pop(context);
+    try {
+      if (widget.memo == null) {
+        await widget.db.insert(Memo(
+          title: title,
+          content: content,
+          emoji: emoji.isEmpty ? '📝' : emoji,
+          createdAt: DateTime.now(),
+        ));
+      } else {
+        await widget.db.update(Memo(
+          id: widget.memo!.id,
+          title: title,
+          content: content,
+          emoji: emoji.isEmpty ? '📝' : emoji,
+          createdAt: widget.memo!.createdAt,
+        ));
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('保存に失敗しました')),
+        );
+      }
+    }
   }
 
   @override

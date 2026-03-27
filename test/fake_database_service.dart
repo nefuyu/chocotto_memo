@@ -8,6 +8,9 @@ class FakeDatabaseService extends DatabaseService {
   int _nextId = 1;
   final List<Memo> _memos = [];
 
+  /// trueにするとinsert/update/deleteが例外を投げる
+  bool shouldThrow = false;
+
   @override
   Future<void> open() async {}
 
@@ -16,6 +19,7 @@ class FakeDatabaseService extends DatabaseService {
 
   @override
   Future<int> insert(Memo memo) async {
+    if (shouldThrow) throw Exception('DB error');
     final id = _nextId++;
     _memos.add(Memo(
       id: id,
@@ -35,12 +39,14 @@ class FakeDatabaseService extends DatabaseService {
 
   @override
   Future<void> update(Memo memo) async {
+    if (shouldThrow) throw Exception('DB error');
     final index = _memos.indexWhere((m) => m.id == memo.id);
     if (index >= 0) _memos[index] = memo;
   }
 
   @override
   Future<void> delete(int id) async {
+    if (shouldThrow) throw Exception('DB error');
     _memos.removeWhere((m) => m.id == id);
   }
 }
