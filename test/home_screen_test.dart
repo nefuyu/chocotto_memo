@@ -34,12 +34,14 @@ void main() {
         content: 'テスト内容1',
         emoji: '📝',
         createdAt: DateTime(2024, 1, 15),
+        updatedAt: DateTime(2024, 1, 15),
       ));
       await db.insert(Memo(
         title: 'テストメモ2',
         content: 'テスト内容2',
         emoji: '✅',
         createdAt: DateTime(2024, 1, 10),
+        updatedAt: DateTime(2024, 1, 10),
       ));
 
       await pumpHomeScreen(tester);
@@ -65,12 +67,14 @@ void main() {
         content: '内容',
         emoji: '📝',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ));
       await db.insert(Memo(
         title: '新しいメモ',
         content: '内容',
         emoji: '✅',
         createdAt: DateTime(2024, 6, 1),
+        updatedAt: DateTime(2024, 6, 1),
       ));
 
       await pumpHomeScreen(tester);
@@ -103,6 +107,7 @@ void main() {
         content: '内容',
         emoji: '📝',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ));
 
       await pumpHomeScreen(tester);

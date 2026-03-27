@@ -27,6 +27,7 @@ class FakeDatabaseService extends DatabaseService {
       content: memo.content,
       emoji: memo.emoji,
       createdAt: memo.createdAt,
+      updatedAt: memo.updatedAt,
     ));
     return id;
   }
@@ -34,14 +35,23 @@ class FakeDatabaseService extends DatabaseService {
   @override
   Future<List<Memo>> getAll() async {
     return [..._memos]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
   @override
   Future<void> update(Memo memo) async {
     if (shouldThrow) throw Exception('DB error');
     final index = _memos.indexWhere((m) => m.id == memo.id);
-    if (index >= 0) _memos[index] = memo;
+    if (index >= 0) {
+      _memos[index] = Memo(
+        id: memo.id,
+        title: memo.title,
+        content: memo.content,
+        emoji: memo.emoji,
+        createdAt: memo.createdAt,
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 
   @override

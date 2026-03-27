@@ -4,7 +4,7 @@ import '../models/memo.dart';
 
 class DatabaseService {
   static const _tableName = 'memos';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   final String? path;
   Database? _db;
@@ -23,9 +23,20 @@ class DatabaseService {
             title TEXT NOT NULL,
             content TEXT NOT NULL,
             emoji TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'ALTER TABLE $_tableName ADD COLUMN updated_at TEXT NOT NULL DEFAULT ""',
+          );
+          await db.execute(
+            'UPDATE $_tableName SET updated_at = created_at',
+          );
+        }
       },
     );
   }
@@ -42,15 +53,17 @@ class DatabaseService {
   Future<List<Memo>> getAll() async {
     final rows = await _db!.query(
       _tableName,
-      orderBy: 'created_at DESC',
+      orderBy: 'updated_at DESC',
     );
     return rows.map(Memo.fromMap).toList();
   }
 
   Future<void> update(Memo memo) async {
+    final map = memo.toMap();
+    map['updated_at'] = DateTime.now().toIso8601String();
     await _db!.update(
       _tableName,
-      memo.toMap(),
+      map,
       where: 'id = ?',
       whereArgs: [memo.id],
     );

@@ -47,11 +47,13 @@ class _MemoEditScreenState extends State<MemoEditScreen> {
 
     try {
       if (widget.memo == null) {
+        final now = DateTime.now();
         await widget.db.insert(Memo(
           title: title,
           content: content,
           emoji: emoji.isEmpty ? '📝' : emoji,
-          createdAt: DateTime.now(),
+          createdAt: now,
+          updatedAt: now,
         ));
       } else {
         await widget.db.update(Memo(
@@ -60,6 +62,7 @@ class _MemoEditScreenState extends State<MemoEditScreen> {
           content: content,
           emoji: emoji.isEmpty ? '📝' : emoji,
           createdAt: widget.memo!.createdAt,
+          updatedAt: widget.memo!.updatedAt,
         ));
       }
       if (mounted) Navigator.pop(context);

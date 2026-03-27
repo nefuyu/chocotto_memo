@@ -63,11 +63,12 @@ void main() {
 
   group('MemoEditScreen - 編集', () {
     testWidgets('「編集」タイトルが表示される', (WidgetTester tester) async {
-      final id = await db.insert(Memo(
+      await db.insert(Memo(
         title: '既存タイトル',
         content: '既存本文',
         emoji: '🔥',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ));
       final memo = (await db.getAll()).first;
       await pumpEditScreen(tester, memo: memo);
@@ -81,6 +82,7 @@ void main() {
         content: '既存本文',
         emoji: '🔥',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ));
       final memo = (await db.getAll()).first;
       await pumpEditScreen(tester, memo: memo);
@@ -100,6 +102,7 @@ void main() {
         content: '旧本文',
         emoji: '📝',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ));
       final memo = (await db.getAll()).first;
       await pumpEditScreen(tester, memo: memo);
@@ -154,6 +157,7 @@ void main() {
         content: '',
         emoji: '📝',
         createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
       ));
       final memo = (await db.getAll()).first;
       db.shouldThrow = true;

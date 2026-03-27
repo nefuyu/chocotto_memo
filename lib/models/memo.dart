@@ -4,6 +4,7 @@ class Memo {
   final String content;
   final String emoji;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   Memo({
     this.id,
@@ -11,6 +12,7 @@ class Memo {
     required this.content,
     required this.emoji,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +22,7 @@ class Memo {
       'content': content,
       'emoji': emoji,
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 
@@ -30,6 +33,7 @@ class Memo {
       content: map['content'] as String,
       emoji: map['emoji'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
     );
   }
 }
