@@ -32,10 +32,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _deleteMemo(Memo memo) async {
-    await widget.db.delete(memo.id!);
     setState(() {
       _memos.removeWhere((m) => m.id == memo.id);
     });
+    await widget.db.delete(memo.id!);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
