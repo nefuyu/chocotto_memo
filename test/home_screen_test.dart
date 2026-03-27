@@ -133,4 +133,79 @@ void main() {
       expect(find.byType(SettingsScreen), findsOneWidget);
     });
   });
+
+  group('HomeScreen - 削除機能', () {
+    testWidgets('スワイプすると対象メモがリストから消える', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+      expect(find.text('削除テスト'), findsOneWidget);
+
+      await tester.drag(find.byType(Dismissible).first, const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('削除テスト'), findsNothing);
+    });
+
+    testWidgets('スワイプ後にSnackBarが表示される', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      await tester.drag(find.byType(Dismissible).first, const Offset(-500, 0));
+      await tester.pump();
+
+      expect(find.text('メモを削除しました'), findsOneWidget);
+      expect(find.text('元に戻す'), findsOneWidget);
+    });
+
+    testWidgets('「元に戻す」をタップするとメモが復元される', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '復元テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      await tester.drag(find.byType(Dismissible).first, const Offset(-500, 0));
+      await tester.pump();
+
+      await tester.tap(find.text('元に戻す'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('復元テスト'), findsOneWidget);
+    });
+
+    testWidgets('スワイプするとDBからも削除される', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: 'DB削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      await tester.drag(find.byType(Dismissible).first, const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(await db.getAll(), isEmpty);
+    });
+  });
 }

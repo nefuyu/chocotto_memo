@@ -31,6 +31,33 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _deleteMemo(Memo memo) async {
+    await widget.db.delete(memo.id!);
+    setState(() {
+      _memos.removeWhere((m) => m.id == memo.id);
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('メモを削除しました'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '元に戻す',
+          onPressed: () async {
+            await widget.db.insert(Memo(
+              title: memo.title,
+              content: memo.content,
+              emoji: memo.emoji,
+              createdAt: memo.createdAt,
+              updatedAt: memo.updatedAt,
+            ));
+            _loadMemos();
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _navigateToEdit({Memo? memo}) async {
     await Navigator.push(
       context,
@@ -75,19 +102,30 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: _memos.length,
               itemBuilder: (context, index) {
                 final memo = _memos[index];
-                return ListTile(
-                  leading: Text(
-                    memo.emoji,
-                    style: const TextStyle(fontSize: 24),
+                return Dismissible(
+                  key: Key('memo_${memo.id}'),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: const Icon(Icons.delete, color: Colors.white),
                   ),
-                  title: Text(memo.title),
-                  subtitle: Text(
-                    memo.content,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  onDismissed: (_) => _deleteMemo(memo),
+                  child: ListTile(
+                    leading: Text(
+                      memo.emoji,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    title: Text(memo.title),
+                    subtitle: Text(
+                      memo.content,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(_formatDate(memo.createdAt)),
+                    onTap: () => _navigateToEdit(memo: memo),
                   ),
-                  trailing: Text(_formatDate(memo.createdAt)),
-                  onTap: () => _navigateToEdit(memo: memo),
                 );
               },
             ),
