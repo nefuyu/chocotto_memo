@@ -64,46 +64,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
                 child: Text('テーマ', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-              RadioListTile<AppTheme>(
-                title: const Text('システム'),
-                value: AppTheme.system,
+              RadioGroup<AppTheme>(
                 groupValue: settings.theme,
-                onChanged: isSaving ? null : (v) => widget.notifier.updateThemePreview(v!),
-              ),
-              RadioListTile<AppTheme>(
-                title: const Text('ライト'),
-                value: AppTheme.light,
-                groupValue: settings.theme,
-                onChanged: isSaving ? null : (v) => widget.notifier.updateThemePreview(v!),
-              ),
-              RadioListTile<AppTheme>(
-                title: const Text('ダーク'),
-                value: AppTheme.dark,
-                groupValue: settings.theme,
-                onChanged: isSaving ? null : (v) => widget.notifier.updateThemePreview(v!),
+                onChanged: (v) => widget.notifier.updateThemePreview(v!),
+                child: Column(
+                  children: [
+                    RadioListTile<AppTheme>(
+                      title: const Text('システム'),
+                      value: AppTheme.system,
+                      enabled: !isSaving,
+                    ),
+                    RadioListTile<AppTheme>(
+                      title: const Text('ライト'),
+                      value: AppTheme.light,
+                      enabled: !isSaving,
+                    ),
+                    RadioListTile<AppTheme>(
+                      title: const Text('ダーク'),
+                      value: AppTheme.dark,
+                      enabled: !isSaving,
+                    ),
+                  ],
+                ),
               ),
               const Divider(),
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Text('フォントサイズ', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-              RadioListTile<AppFontSize>(
-                title: const Text('小'),
-                value: AppFontSize.small,
+              RadioGroup<AppFontSize>(
                 groupValue: settings.fontSize,
-                onChanged: isSaving ? null : (v) => widget.notifier.updateFontSizePreview(v!),
-              ),
-              RadioListTile<AppFontSize>(
-                title: const Text('中'),
-                value: AppFontSize.medium,
-                groupValue: settings.fontSize,
-                onChanged: isSaving ? null : (v) => widget.notifier.updateFontSizePreview(v!),
-              ),
-              RadioListTile<AppFontSize>(
-                title: const Text('大'),
-                value: AppFontSize.large,
-                groupValue: settings.fontSize,
-                onChanged: isSaving ? null : (v) => widget.notifier.updateFontSizePreview(v!),
+                onChanged: (v) => widget.notifier.updateFontSizePreview(v!),
+                child: Column(
+                  children: [
+                    RadioListTile<AppFontSize>(
+                      title: const Text('小'),
+                      value: AppFontSize.small,
+                      enabled: !isSaving,
+                    ),
+                    RadioListTile<AppFontSize>(
+                      title: const Text('中'),
+                      value: AppFontSize.medium,
+                      enabled: !isSaving,
+                    ),
+                    RadioListTile<AppFontSize>(
+                      title: const Text('大'),
+                      value: AppFontSize.large,
+                      enabled: !isSaving,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
