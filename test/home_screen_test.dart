@@ -133,4 +133,111 @@ void main() {
       expect(find.byType(SettingsScreen), findsOneWidget);
     });
   });
+
+  group('HomeScreen - 削除機能', () {
+    testWidgets('メモを長押しするとコンテキストメニューが表示される', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      await tester.longPress(find.text('削除テスト'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('削除'), findsOneWidget);
+    });
+
+    testWidgets('コンテキストメニューの「削除」を選ぶと確認ダイアログが表示される', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      await tester.longPress(find.text('削除テスト'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('削除'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('削除しますか？'), findsOneWidget);
+    });
+
+    testWidgets('確認ダイアログで「削除」をタップするとメモが削除される', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      await tester.longPress(find.text('削除テスト'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('削除'));
+      await tester.pumpAndSettle();
+      // AlertDialog内の「削除」ボタン
+      await tester.tap(find.widgetWithText(TextButton, '削除'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('削除テスト'), findsNothing);
+      expect(
+        find.text('メモがありません。右下のボタンから作成しましょう'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('確認ダイアログで「キャンセル」をタップするとメモが残る', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      await tester.longPress(find.text('削除テスト'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('削除'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('キャンセル'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('削除テスト'), findsOneWidget);
+    });
+
+    testWidgets('DB削除失敗時にSnackBarが表示される', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: '削除テスト',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      db.shouldThrow = true;
+      await tester.longPress(find.text('削除テスト'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('削除'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, '削除'));
+      await tester.pump();
+
+      expect(find.text('削除に失敗しました'), findsOneWidget);
+    });
+  });
 }

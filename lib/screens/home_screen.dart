@@ -48,6 +48,58 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$y/$m/$d';
   }
 
+  Future<void> _onLongPress(BuildContext context, Memo memo, Offset tapPosition) async {
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        tapPosition.dx,
+        tapPosition.dy,
+        tapPosition.dx,
+        tapPosition.dy,
+      ),
+      items: const [
+        PopupMenuItem(value: 'delete', child: Text('削除')),
+      ],
+    );
+
+    if (selected == 'delete' && context.mounted) {
+      await _confirmDelete(context, memo);
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context, Memo memo) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('削除しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await widget.db.delete(memo.id!);
+      await _loadMemos();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('削除に失敗しました')),
+        );
+        await _loadMemos();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,19 +127,23 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: _memos.length,
               itemBuilder: (context, index) {
                 final memo = _memos[index];
-                return ListTile(
-                  leading: Text(
-                    memo.emoji,
-                    style: const TextStyle(fontSize: 24),
+                return GestureDetector(
+                  onLongPressStart: (details) =>
+                      _onLongPress(context, memo, details.globalPosition),
+                  child: ListTile(
+                    leading: Text(
+                      memo.emoji,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    title: Text(memo.title),
+                    subtitle: Text(
+                      memo.content,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(_formatDate(memo.createdAt)),
+                    onTap: () => _navigateToEdit(memo: memo),
                   ),
-                  title: Text(memo.title),
-                  subtitle: Text(
-                    memo.content,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: Text(_formatDate(memo.createdAt)),
-                  onTap: () => _navigateToEdit(memo: memo),
                 );
               },
             ),
