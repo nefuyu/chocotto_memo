@@ -51,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadMemos() async {
     final memos = await widget.db.getAll(limit: widget.perPage, offset: 0);
+    if (!mounted) return;
     setState(() {
       _memos = memos;
       _hasMore = memos.length == widget.perPage;
@@ -64,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
       limit: widget.perPage,
       offset: _memos.length,
     );
+    if (!mounted) return;
     setState(() {
       _memos.addAll(memos);
       _hasMore = memos.length == widget.perPage;

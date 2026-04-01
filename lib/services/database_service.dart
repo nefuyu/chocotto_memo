@@ -53,7 +53,7 @@ class DatabaseService {
   Future<List<Memo>> getAll({int? limit, int? offset}) async {
     final rows = await _db!.query(
       _tableName,
-      orderBy: 'updated_at DESC',
+      orderBy: 'updated_at DESC, id DESC',
       limit: limit,
       offset: offset,
     );

@@ -35,7 +35,11 @@ class FakeDatabaseService extends DatabaseService {
   @override
   Future<List<Memo>> getAll({int? limit, int? offset}) async {
     final sorted = [..._memos]
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      ..sort((a, b) {
+        final cmp = b.updatedAt.compareTo(a.updatedAt);
+        if (cmp != 0) return cmp;
+        return (b.id ?? 0).compareTo(a.id ?? 0);
+      });
     final start = offset ?? 0;
     final sliced = sorted.skip(start);
     return (limit == null ? sliced : sliced.take(limit)).toList();
