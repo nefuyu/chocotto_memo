@@ -78,19 +78,15 @@ void main() {
     testWidgets('デフォルトではシステムテーマが選択されている', (tester) async {
       final notifier = await createNotifier();
       await tester.pumpWidget(MaterialApp(home: SettingsScreen(notifier: notifier)));
-      final radio = tester.widgetList<RadioListTile<AppTheme>>(
-        find.byType(RadioListTile<AppTheme>),
-      ).firstWhere((r) => r.value == AppTheme.system);
-      expect(radio.groupValue, AppTheme.system);
+      final group = tester.widget<RadioGroup<AppTheme>>(find.byType(RadioGroup<AppTheme>));
+      expect(group.groupValue, AppTheme.system);
     });
 
     testWidgets('デフォルトでは中フォントが選択されている', (tester) async {
       final notifier = await createNotifier();
       await tester.pumpWidget(MaterialApp(home: SettingsScreen(notifier: notifier)));
-      final radio = tester.widgetList<RadioListTile<AppFontSize>>(
-        find.byType(RadioListTile<AppFontSize>),
-      ).firstWhere((r) => r.value == AppFontSize.medium);
-      expect(radio.groupValue, AppFontSize.medium);
+      final group = tester.widget<RadioGroup<AppFontSize>>(find.byType(RadioGroup<AppFontSize>));
+      expect(group.groupValue, AppFontSize.medium);
     });
   });
 
@@ -141,7 +137,7 @@ void main() {
       await tester.pump(); // save開始、まだ完了していない
 
       // 保存中はボタンが無効（onPressedがnull）
-      final button = tester.widget<TextButton>(find.widgetWithText(TextButton, '保存'));
+      final button = tester.widget<TextButton>(find.byType(TextButton));
       expect(button.onPressed, isNull);
 
       service.completeSuccess();
@@ -177,7 +173,7 @@ void main() {
         find.byType(RadioListTile<AppTheme>),
       );
       for (final radio in radios) {
-        expect(radio.onChanged, isNull);
+        expect(radio.enabled, isFalse);
       }
 
       service.completeSuccess();
@@ -265,8 +261,10 @@ void main() {
   group('SettingsScreen 離脱時プレビュー破棄', () {
     testWidgets('保存せずに画面を離脱するとプレビューがsavedSettingsに戻る', (tester) async {
       final notifier = await createNotifier();
+      final navigatorKey = GlobalKey<NavigatorState>();
       await tester.pumpWidget(MaterialApp(
         home: Navigator(
+          key: navigatorKey,
           onGenerateRoute: (_) => MaterialPageRoute(
             builder: (_) => Scaffold(
               body: Builder(
@@ -295,8 +293,7 @@ void main() {
       expect(notifier.settings.theme, AppTheme.dark);
 
       // 保存せずに戻る
-      final NavigatorState navigator = tester.state(find.byType(Navigator));
-      navigator.pop();
+      navigatorKey.currentState!.pop();
       await tester.pumpAndSettle();
 
       // プレビューが破棄されてsavedSettings(system)に戻る
@@ -305,8 +302,10 @@ void main() {
 
     testWidgets('保存してから画面を離脱してもsavedSettingsは維持される', (tester) async {
       final notifier = await createNotifier();
+      final navigatorKey = GlobalKey<NavigatorState>();
       await tester.pumpWidget(MaterialApp(
         home: Navigator(
+          key: navigatorKey,
           onGenerateRoute: (_) => MaterialPageRoute(
             builder: (_) => Scaffold(
               body: Builder(
@@ -335,8 +334,7 @@ void main() {
       expect(notifier.savedSettings.theme, AppTheme.dark);
 
       // 保存後に戻る
-      final NavigatorState navigator = tester.state(find.byType(Navigator));
-      navigator.pop();
+      navigatorKey.currentState!.pop();
       await tester.pumpAndSettle();
 
       // 保存済み設定はダークのまま
