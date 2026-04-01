@@ -27,6 +27,9 @@ class FakeDatabaseService extends DatabaseService {
     _getAllHold[callIndex]?.complete();
   }
 
+  /// これまでに呼ばれた getAll の回数（テスト用）
+  int get getAllCallCount => _getAllCallIndex;
+
   @override
   Future<void> open() async {}
 

@@ -239,6 +239,43 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('ページメモ01'), findsNothing);
     });
+
+    testWidgets('_loadMemos実行中は_isLoadingがtrueになり_loadMoreが抑制される',
+        (WidgetTester tester) async {
+      // 5件、perPage=3 → 初期ロード3件(_hasMore=true)
+      // 3件×72px=216px < viewport600px なので CPI がviewport内に収まる
+      await insertMemos(5);
+
+      // Call 2（navigation後の_loadMemos）を一時停止
+      db.holdGetAllCallAt(2);
+
+      await pumpHomeScreen(tester, perPage: 3);
+      expect(db.getAllCallCount, 1);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      // FAB → MemoEditScreen 遷移
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400)); // push アニメーション完了
+
+      // 戻る → _loadMemos (Call 2: 保留) 開始 → _isLoading=true
+      await tester.tap(find.byType(BackButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400)); // pop アニメーション + _loadMemos 開始
+      await tester.pump(); // setState(_isLoading=true) の rebuild 処理
+
+      // _loadMemos が getAll を await 中: _isLoading=true → CPI が表示される
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(db.getAllCallCount, 2); // _loadMore は呼ばれていない
+
+      // Call 2 を解放 → _loadMemos 完了 → _isLoading=false
+      db.releaseGetAllCallAt(2);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(db.getAllCallCount, 2); // _loadMore は最後まで呼ばれていない
+    });
   });
 
   group('HomeScreen - 削除機能', () {

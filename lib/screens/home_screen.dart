@@ -52,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadMemos() async {
     _loadGeneration++;
+    setState(() => _isLoading = true);
     final memos = await widget.db.getAll(limit: widget.perPage, offset: 0);
     if (!mounted) return;
     setState(() {
