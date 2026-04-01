@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Memo> _memos = [];
   bool _isLoading = false;
   bool _hasMore = true;
+  int _loadGeneration = 0;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -50,22 +51,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadMemos() async {
+    _loadGeneration++;
     final memos = await widget.db.getAll(limit: widget.perPage, offset: 0);
     if (!mounted) return;
     setState(() {
       _memos = memos;
       _hasMore = memos.length == widget.perPage;
+      _isLoading = false;
     });
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
     setState(() => _isLoading = true);
+    final generation = _loadGeneration;
     final memos = await widget.db.getAll(
       limit: widget.perPage,
       offset: _memos.length,
     );
     if (!mounted) return;
+    if (generation != _loadGeneration) {
+      setState(() => _isLoading = false);
+      return;
+    }
     setState(() {
       _memos.addAll(memos);
       _hasMore = memos.length == widget.perPage;

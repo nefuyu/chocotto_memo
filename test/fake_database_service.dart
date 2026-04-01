@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chocotto_memo/models/memo.dart';
 import 'package:chocotto_memo/services/database_service.dart';
 
@@ -10,6 +12,20 @@ class FakeDatabaseService extends DatabaseService {
 
   /// trueにするとinsert/update/deleteが例外を投げる
   bool shouldThrow = false;
+
+  // --- getAll の呼び出し番号別一時停止機構 (Completerベース) ---
+  int _getAllCallIndex = 0;
+  final Map<int, Completer<void>> _getAllHold = {};
+
+  /// [callIndex] 番目（1始まり）の getAll 呼び出しを一時停止させる
+  void holdGetAllCallAt(int callIndex) {
+    _getAllHold[callIndex] = Completer<void>();
+  }
+
+  /// [callIndex] 番目の停止中 getAll を解放する
+  void releaseGetAllCallAt(int callIndex) {
+    _getAllHold[callIndex]?.complete();
+  }
 
   @override
   Future<void> open() async {}
@@ -34,6 +50,10 @@ class FakeDatabaseService extends DatabaseService {
 
   @override
   Future<List<Memo>> getAll({int? limit, int? offset}) async {
+    final callIdx = ++_getAllCallIndex;
+    if (_getAllHold.containsKey(callIdx)) {
+      await _getAllHold[callIdx]!.future;
+    }
     final sorted = [..._memos]
       ..sort((a, b) {
         final cmp = b.updatedAt.compareTo(a.updatedAt);

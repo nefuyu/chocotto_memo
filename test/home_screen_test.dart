@@ -198,6 +198,47 @@ void main() {
       expect(find.text('ページメモ00'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
+
+    testWidgets('_loadMore実行中に_loadMemosが呼ばれると_loadMoreの結果は破棄される',
+        (WidgetTester tester) async {
+      await insertMemos(12);
+
+      // 2回目の getAll（_loadMore）を一時停止
+      // Call 1 = initState の _loadMemos、Call 2 = スクロール後の _loadMore
+      db.holdGetAllCallAt(2);
+
+      await pumpHomeScreen(tester, perPage: 10);
+      // Call 1 完了: 10件ロード済み
+      expect(find.text('ページメモ11'), findsOneWidget);
+      expect(find.text('ページメモ01'), findsNothing);
+
+      // ドラッグでスクロール → _onScroll → _loadMore (Call 2: 保留) 開始
+      // CPI アニメーションが無限に frame をスケジュールするため pumpAndSettle は
+      // タイムアウトする。固定 pump で代替する。
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -50));
+      await tester.pump(); // drag処理 → _loadMore 開始
+      await tester.pump(); // _isLoading = true の setState 処理
+
+      // FAB → MemoEditScreen 遷移（push animation 300ms を超えた時間を pump）
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pump(); // タップ処理
+      await tester.pump(const Duration(milliseconds: 400)); // 遷移アニメーション完了
+
+      // 戻る → pop animation + _loadMemos (Call 3: 即完了) + _loadGeneration 更新
+      await tester.tap(find.byType(BackButton));
+      await tester.pump(); // タップ処理
+      await tester.pump(const Duration(milliseconds: 400)); // 戻り遷移 + _loadMemos 実行
+      await tester.pump(); // _loadMemos の setState 処理 (_isLoading = false)
+
+      // Call 2 を解放 → generation 不一致 (旧 < 新) で結果を破棄
+      db.releaseGetAllCallAt(2);
+      await tester.pump(); // _loadMore 再開 → generation チェック → 破棄
+      await tester.pump(); // setState(_isLoading = false) 処理
+
+      // stale な追記はされず、_isLoading もリセットされる
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('ページメモ01'), findsNothing);
+    });
   });
 
   group('HomeScreen - 削除機能', () {
