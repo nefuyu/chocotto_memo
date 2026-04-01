@@ -49,13 +49,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _onLongPress(BuildContext context, Memo memo, Offset tapPosition) async {
+    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final overlaySize = overlay.size;
     final selected = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
         tapPosition.dx,
         tapPosition.dy,
-        tapPosition.dx,
-        tapPosition.dy,
+        overlaySize.width - tapPosition.dx,
+        overlaySize.height - tapPosition.dy,
       ),
       items: const [
         PopupMenuItem(value: 'delete', child: Text('削除')),
