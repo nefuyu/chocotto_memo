@@ -8,8 +8,14 @@ import 'settings_screen.dart';
 class HomeScreen extends StatefulWidget {
   final DatabaseService db;
   final SettingsNotifier settingsNotifier;
+  final int perPage;
 
-  const HomeScreen({super.key, required this.db, required this.settingsNotifier});
+  const HomeScreen({
+    super.key,
+    required this.db,
+    required this.settingsNotifier,
+    this.perPage = 100,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -17,17 +23,51 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Memo> _memos = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadMemos();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoading &&
+        _hasMore) {
+      _loadMore();
+    }
+  }
+
   Future<void> _loadMemos() async {
-    final memos = await widget.db.getAll();
+    final memos = await widget.db.getAll(limit: widget.perPage, offset: 0);
     setState(() {
       _memos = memos;
+      _hasMore = memos.length == widget.perPage;
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore) return;
+    setState(() => _isLoading = true);
+    final memos = await widget.db.getAll(
+      limit: widget.perPage,
+      offset: _memos.length,
+    );
+    setState(() {
+      _memos.addAll(memos);
+      _hasMore = memos.length == widget.perPage;
+      _isLoading = false;
     });
   }
 
@@ -126,8 +166,17 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text('メモがありません。右下のボタンから作成しましょう'),
             )
           : ListView.builder(
-              itemCount: _memos.length,
+              controller: _scrollController,
+              itemCount: _memos.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == _memos.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
                 final memo = _memos[index];
                 return GestureDetector(
                   onLongPressStart: (details) =>

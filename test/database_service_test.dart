@@ -162,4 +162,46 @@ void main() {
       expect(all.length, 3);
     });
   });
+
+  group('DatabaseService pagination', () {
+    Future<void> insertN(int count) async {
+      for (var i = 0; i < count; i++) {
+        final dt = DateTime(2026, 1, i + 1);
+        await db.insert(Memo(
+          title: 'メモ$i',
+          content: '',
+          emoji: '📌',
+          createdAt: dt,
+          updatedAt: dt,
+        ));
+      }
+    }
+
+    test('getAll with limit returns at most limit memos', () async {
+      await insertN(5);
+      final result = await db.getAll(limit: 3);
+      expect(result.length, 3);
+    });
+
+    test('getAll with offset skips first N memos (sorted DESC)', () async {
+      await insertN(5);
+      // updatedAt DESC: メモ4, メモ3, メモ2, メモ1, メモ0
+      final result = await db.getAll(limit: 2, offset: 3);
+      expect(result.length, 2);
+      expect(result[0].title, 'メモ1');
+      expect(result[1].title, 'メモ0');
+    });
+
+    test('getAll returns empty list when offset exceeds total', () async {
+      await insertN(3);
+      final result = await db.getAll(limit: 10, offset: 10);
+      expect(result, isEmpty);
+    });
+
+    test('getAll without limit/offset returns all memos', () async {
+      await insertN(5);
+      final result = await db.getAll();
+      expect(result.length, 5);
+    });
+  });
 }

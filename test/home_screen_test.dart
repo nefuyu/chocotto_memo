@@ -20,9 +20,11 @@ void main() {
     await settingsNotifier.load();
   });
 
-  Future<void> pumpHomeScreen(WidgetTester tester) async {
+  Future<void> pumpHomeScreen(WidgetTester tester, {int perPage = 100}) async {
     await tester.pumpWidget(
-      MaterialApp(home: HomeScreen(db: db, settingsNotifier: settingsNotifier)),
+      MaterialApp(
+        home: HomeScreen(db: db, settingsNotifier: settingsNotifier, perPage: perPage),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -131,6 +133,70 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SettingsScreen), findsOneWidget);
+    });
+  });
+
+  group('HomeScreen - 無限スクロール', () {
+    Future<void> insertMemos(int count) async {
+      for (int i = 0; i < count; i++) {
+        await db.insert(Memo(
+          title: 'ページメモ${i.toString().padLeft(2, '0')}',
+          content: '内容',
+          emoji: '📝',
+          createdAt: DateTime(2024, 1, i + 1),
+          updatedAt: DateTime(2024, 1, i + 1),
+        ));
+      }
+    }
+
+    testWidgets('件数がperPage以下のとき全件表示される', (WidgetTester tester) async {
+      await insertMemos(5);
+      await pumpHomeScreen(tester, perPage: 10);
+
+      // 最新 = ページメモ04, 最古 = ページメモ00
+      expect(find.text('ページメモ04'), findsOneWidget);
+      expect(find.text('ページメモ00'), findsOneWidget);
+    });
+
+    testWidgets('件数がperPageを超えるとき最初のページのみ読み込まれる', (WidgetTester tester) async {
+      await insertMemos(12);
+      await pumpHomeScreen(tester, perPage: 10);
+
+      // 最新10件（ページメモ11〜ページメモ02）がロード済み
+      expect(find.text('ページメモ11'), findsOneWidget);
+      // 2ページ目のメモはまだウィジェットツリーに存在しない
+      expect(find.text('ページメモ01'), findsNothing);
+      expect(find.text('ページメモ00'), findsNothing);
+    });
+
+    testWidgets('スクロールで追加ページが読み込まれる', (WidgetTester tester) async {
+      await insertMemos(12);
+      await pumpHomeScreen(tester, perPage: 10);
+
+      // 初期状態: 2ページ目は未ロード
+      expect(find.text('ページメモ01'), findsNothing);
+
+      // リスト末尾へスクロール（10件×72px=720px > viewport600px なので可能）
+      await tester.fling(find.byType(ListView), const Offset(0, -600), 2000);
+      await tester.pumpAndSettle();
+
+      // 追加ロード後、2ページ目のアイテムを探してスクロール
+      await tester.scrollUntilVisible(
+        find.text('ページメモ01'),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('ページメモ01'), findsOneWidget);
+    });
+
+    testWidgets('全件ロード済みのときはそれ以上ロードしない', (WidgetTester tester) async {
+      await insertMemos(5);
+      await pumpHomeScreen(tester, perPage: 10);
+
+      // 5件全件表示（hasMore=false のはず）
+      expect(find.text('ページメモ04'), findsOneWidget);
+      expect(find.text('ページメモ00'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
   });
 
