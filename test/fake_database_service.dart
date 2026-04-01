@@ -11,6 +11,9 @@ class FakeDatabaseService extends DatabaseService {
   /// trueにするとinsert/update/deleteが例外を投げる
   bool shouldThrow = false;
 
+  /// getAll呼び出し回数
+  int getAllCallCount = 0;
+
   @override
   Future<void> open() async {}
 
@@ -33,9 +36,12 @@ class FakeDatabaseService extends DatabaseService {
   }
 
   @override
-  Future<List<Memo>> getAll() async {
-    return [..._memos]
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  Future<List<Memo>> getAll({int? limit, int? offset}) async {
+    getAllCallCount++;
+    final sorted = [..._memos]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final start = offset ?? 0;
+    final sliced = start >= sorted.length ? <Memo>[] : sorted.sublist(start);
+    return limit == null ? sliced : sliced.take(limit).toList();
   }
 
   @override

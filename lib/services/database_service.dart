@@ -50,10 +50,12 @@ class DatabaseService {
     return await _db!.insert(_tableName, memo.toMap());
   }
 
-  Future<List<Memo>> getAll() async {
+  Future<List<Memo>> getAll({int? limit, int? offset}) async {
     final rows = await _db!.query(
       _tableName,
       orderBy: 'updated_at DESC',
+      limit: limit,
+      offset: offset,
     );
     return rows.map(Memo.fromMap).toList();
   }
