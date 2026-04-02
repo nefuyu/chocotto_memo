@@ -67,6 +67,7 @@ class FakeDatabaseService extends DatabaseService {
   Future<void> delete(int id) async {
     if (shouldThrow) throw Exception('DB error');
     _memos.removeWhere((m) => m.id == id);
+    _viewItems.removeWhere((vi) => vi.memoId == id); // ON DELETE CASCADE相当
   }
 
   @override
@@ -87,6 +88,14 @@ class FakeDatabaseService extends DatabaseService {
 
   @override
   Future<int> insertViewItem(ViewItem item) async {
+    final duplicate = _viewItems.any(
+      (vi) => vi.viewId == item.viewId && vi.posIndex == item.posIndex,
+    );
+    if (duplicate) {
+      throw Exception(
+        'UNIQUE constraint failed: view_items.view_id, view_items.pos_index',
+      );
+    }
     final id = _nextViewItemId++;
     _viewItems.add(ViewItem(
       id: id,
