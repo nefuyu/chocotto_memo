@@ -17,6 +17,9 @@ class FakeDatabaseService extends DatabaseService {
   /// trueにするとinsert/update/deleteが例外を投げる
   bool shouldThrow = false;
 
+  /// trueにするとgetGridMemosが例外を投げる
+  bool shouldThrowOnGetGrid = false;
+
   @override
   Future<void> open() async {}
 
@@ -106,6 +109,7 @@ class FakeDatabaseService extends DatabaseService {
 
   @override
   Future<Map<int, Memo>> getGridMemos(int viewId) async {
+    if (shouldThrowOnGetGrid) throw Exception('DB error');
     final items = _viewItems.where((vi) => vi.viewId == viewId).toList();
     final result = <int, Memo>{};
     for (final item in items) {

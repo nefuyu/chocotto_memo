@@ -144,4 +144,50 @@ void main() {
       expect(find.byType(GridViewScreen), findsOneWidget);
     });
   });
+
+  group('GridViewScreen - Error Recovery', () {
+    testWidgets('グリッド読み込みに失敗するとSnackBarが表示される', (tester) async {
+      db.shouldThrowOnGetGrid = true;
+      await pumpGridViewScreen(tester);
+      expect(find.text('メモの読み込みに失敗しました'), findsOneWidget);
+    });
+
+    testWidgets('エラー後もグリッド画面が表示され続ける（スタックしない）',
+        (tester) async {
+      db.shouldThrowOnGetGrid = true;
+      await pumpGridViewScreen(tester);
+      expect(find.text('メモの読み込みに失敗しました'), findsOneWidget);
+      // エラーが発生しても画面はそのまま表示される
+      expect(find.byType(GridView), findsOneWidget);
+    });
+  });
+
+  group('GridViewScreen - Accessibility', () {
+    testWidgets('メモセルにスクリーンリーダー向けラベルが付与される', (tester) async {
+      final memoId = await db.insert(Memo(
+        title: 'アクセシビリティテスト',
+        content: '内容',
+        emoji: '♿',
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      ));
+      await db.insertViewItem(ViewItem(viewId: 1, memoId: memoId, posIndex: 0));
+
+      await pumpGridViewScreen(tester);
+
+      expect(
+        find.bySemanticsLabel(RegExp('アクセシビリティテスト')),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('空セルにスクリーンリーダー向けラベルが付与される', (tester) async {
+      await pumpGridViewScreen(tester);
+
+      expect(
+        find.bySemanticsLabel(RegExp('空のセル')),
+        findsWidgets,
+      );
+    });
+  });
 }

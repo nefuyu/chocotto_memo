@@ -26,9 +26,16 @@ class _GridViewScreenState extends State<GridViewScreen> {
   }
 
   Future<void> _loadGrid() async {
-    final grid = await widget.db.getGridMemos(widget.view.id);
-    if (!mounted) return;
-    setState(() => _grid = grid);
+    try {
+      final grid = await widget.db.getGridMemos(widget.view.id);
+      if (!mounted) return;
+      setState(() => _grid = grid);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('メモの読み込みに失敗しました')),
+      );
+    }
   }
 
   Future<void> _navigateToEdit(Memo memo) async {
@@ -73,25 +80,29 @@ class _MemoCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(memo.emoji, style: const TextStyle(fontSize: 24)),
-              const SizedBox(height: 4),
-              Text(
-                memo.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12),
-              ),
-            ],
+    return Semantics(
+      label: '${memo.title} ${memo.emoji}',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(memo.emoji, style: const TextStyle(fontSize: 24)),
+                const SizedBox(height: 4),
+                Text(
+                  memo.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -106,13 +117,16 @@ class _EmptyCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: ValueKey<String>('grid_cell_$index'),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
+    return Semantics(
+      label: '空のセル',
+      child: Container(
+        key: ValueKey<String>('grid_cell_$index'),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
         ),
-        borderRadius: BorderRadius.circular(8),
       ),
     );
   }
