@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:chocotto_memo/models/memo.dart';
+import 'package:chocotto_memo/models/memo_view.dart';
+import 'package:chocotto_memo/models/view_item.dart';
 import 'package:chocotto_memo/services/database_service.dart';
 
 void main() {
@@ -160,6 +162,99 @@ void main() {
       }
       final all = await db.getAll();
       expect(all.length, 3);
+    });
+  });
+
+  group('View CRUD', () {
+    test('insertViewとgetViewsでビューが取得できる', () async {
+      final view = MemoView(id: 1, name: 'テストビュー', displayOrder: 0);
+      await db.insertView(view);
+      final views = await db.getViews();
+      expect(views.length, 1);
+      expect(views.first.id, 1);
+      expect(views.first.name, 'テストビュー');
+      expect(views.first.displayOrder, 0);
+    });
+
+    test('getViewsはdisplay_order昇順で返す', () async {
+      await db.insertView(MemoView(id: 2, name: 'B', displayOrder: 2));
+      await db.insertView(MemoView(id: 1, name: 'A', displayOrder: 1));
+      final views = await db.getViews();
+      expect(views[0].name, 'A');
+      expect(views[1].name, 'B');
+    });
+
+    test('deleteViewでビューが削除される', () async {
+      await db.insertView(MemoView(id: 1, name: 'テストビュー', displayOrder: 0));
+      await db.deleteView(1);
+      expect(await db.getViews(), isEmpty);
+    });
+  });
+
+  group('ViewItem CRUD', () {
+    late int memoId;
+
+    setUp(() async {
+      await db.insertView(MemoView(id: 1, name: 'テストビュー', displayOrder: 0));
+      memoId = await db.insert(Memo(
+        title: 'テストメモ',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      ));
+    });
+
+    test('insertViewItemとgetViewItemsでアイテムが取得できる', () async {
+      final id = await db.insertViewItem(
+        ViewItem(viewId: 1, memoId: memoId, posIndex: 0),
+      );
+      final items = await db.getViewItems(1);
+      expect(items.length, 1);
+      expect(items.first.id, id);
+      expect(items.first.viewId, 1);
+      expect(items.first.memoId, memoId);
+      expect(items.first.posIndex, 0);
+    });
+
+    test('deleteViewItemでアイテムが削除される', () async {
+      final id = await db.insertViewItem(
+        ViewItem(viewId: 1, memoId: memoId, posIndex: 0),
+      );
+      await db.deleteViewItem(id);
+      expect(await db.getViewItems(1), isEmpty);
+    });
+
+    test('deleteViewはview_itemsをカスケード削除する', () async {
+      await db.insertViewItem(ViewItem(viewId: 1, memoId: memoId, posIndex: 0));
+      await db.deleteView(1);
+      expect(await db.getViews(), isEmpty);
+      // カスケード後、view_idが消えたビューのアイテムは存在しない
+      final items = await db.getViewItems(1);
+      expect(items, isEmpty);
+    });
+
+    test('getGridMemosはpos_indexをキーにMemoを返す', () async {
+      await db.insertViewItem(ViewItem(viewId: 1, memoId: memoId, posIndex: 2));
+      final grid = await db.getGridMemos(1);
+      expect(grid.containsKey(2), isTrue);
+      expect(grid[2]!.id, memoId);
+      expect(grid[2]!.title, 'テストメモ');
+    });
+
+    test('getGridMemosはアイテムがない場合に空マップを返す', () async {
+      final grid = await db.getGridMemos(1);
+      expect(grid, isEmpty);
+    });
+
+    test('同じビューの同じpos_indexへの重複配置は例外となる', () async {
+      await db.insertViewItem(ViewItem(viewId: 1, memoId: memoId, posIndex: 0));
+      expect(
+        () async => db.insertViewItem(
+          ViewItem(viewId: 1, memoId: memoId, posIndex: 0),
+        ),
+        throwsException,
+      );
     });
   });
 }

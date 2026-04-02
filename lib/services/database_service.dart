@@ -1,10 +1,12 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import '../models/memo.dart';
+import '../models/memo_view.dart';
+import '../models/view_item.dart';
 
 class DatabaseService {
   static const _tableName = 'memos';
-  static const _dbVersion = 2;
+  static const _dbVersion = 3;
 
   final String? path;
   Database? _db;
@@ -16,6 +18,9 @@ class DatabaseService {
     _db = await openDatabase(
       dbPath,
       version: _dbVersion,
+      onOpen: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE $_tableName (
@@ -27,6 +32,22 @@ class DatabaseService {
             updated_at TEXT NOT NULL
           )
         ''');
+        await db.execute('''
+          CREATE TABLE views (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            display_order INTEGER NOT NULL
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE view_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            view_id INTEGER NOT NULL REFERENCES views(id) ON DELETE CASCADE,
+            memo_id INTEGER NOT NULL REFERENCES $_tableName(id) ON DELETE CASCADE,
+            pos_index INTEGER NOT NULL,
+            UNIQUE(view_id, pos_index)
+          )
+        ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -36,6 +57,24 @@ class DatabaseService {
           await db.execute(
             'UPDATE $_tableName SET updated_at = created_at',
           );
+        }
+        if (oldVersion < 3) {
+          await db.execute('''
+            CREATE TABLE views (
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL,
+              display_order INTEGER NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE view_items (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              view_id INTEGER NOT NULL REFERENCES views(id) ON DELETE CASCADE,
+              memo_id INTEGER NOT NULL REFERENCES $_tableName(id) ON DELETE CASCADE,
+              pos_index INTEGER NOT NULL,
+              UNIQUE(view_id, pos_index)
+            )
+          ''');
         }
       },
     );
@@ -75,5 +114,55 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // --- Views ---
+
+  Future<void> insertView(MemoView view) async {
+    await _db!.insert('views', view.toMap());
+  }
+
+  Future<List<MemoView>> getViews() async {
+    final rows = await _db!.query('views', orderBy: 'display_order ASC');
+    return rows.map(MemoView.fromMap).toList();
+  }
+
+  Future<void> deleteView(int id) async {
+    await _db!.delete('views', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- ViewItems ---
+
+  Future<int> insertViewItem(ViewItem item) async {
+    return await _db!.insert('view_items', item.toMap());
+  }
+
+  Future<List<ViewItem>> getViewItems(int viewId) async {
+    final rows = await _db!.query(
+      'view_items',
+      where: 'view_id = ?',
+      whereArgs: [viewId],
+    );
+    return rows.map(ViewItem.fromMap).toList();
+  }
+
+  Future<void> deleteViewItem(int id) async {
+    await _db!.delete('view_items', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<Map<int, Memo>> getGridMemos(int viewId) async {
+    final rows = await _db!.rawQuery('''
+      SELECT vi.pos_index, m.*
+      FROM view_items vi
+      JOIN $_tableName m ON vi.memo_id = m.id
+      WHERE vi.view_id = ?
+    ''', [viewId]);
+
+    final result = <int, Memo>{};
+    for (final row in rows) {
+      final posIndex = row['pos_index'] as int;
+      result[posIndex] = Memo.fromMap(row);
+    }
+    return result;
   }
 }
