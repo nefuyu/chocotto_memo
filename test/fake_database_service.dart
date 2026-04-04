@@ -88,6 +88,13 @@ class FakeDatabaseService extends DatabaseService {
 
   @override
   Future<int> insertViewItem(ViewItem item) async {
+    if (item.posIndex < 0 || item.posIndex >= DatabaseService.gridCellCount) {
+      throw ArgumentError.value(
+        item.posIndex,
+        'posIndex',
+        '有効範囲は 0 以上 ${DatabaseService.gridCellCount} 未満です',
+      );
+    }
     final duplicate = _viewItems.any(
       (vi) => vi.viewId == item.viewId && vi.posIndex == item.posIndex,
     );

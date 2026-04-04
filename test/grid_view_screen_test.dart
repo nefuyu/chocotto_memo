@@ -162,6 +162,40 @@ void main() {
     });
   });
 
+  group('FakeDatabaseService - posIndex バリデーション', () {
+    test('insertViewItemでposIndexが0未満はArgumentErrorとなる', () async {
+      final memoId = await db.insert(Memo(
+        title: 'テスト',
+        content: '',
+        emoji: '📝',
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      ));
+      expect(
+        () async => db.insertViewItem(
+          ViewItem(viewId: 1, memoId: memoId, posIndex: -1),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('insertViewItemでposIndexが9以上はArgumentErrorとなる', () async {
+      final memoId = await db.insert(Memo(
+        title: 'テスト',
+        content: '',
+        emoji: '📝',
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      ));
+      expect(
+        () async => db.insertViewItem(
+          ViewItem(viewId: 1, memoId: memoId, posIndex: 9),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
   group('GridViewScreen - Accessibility', () {
     testWidgets('メモセルにスクリーンリーダー向けラベルが付与される', (tester) async {
       final memoId = await db.insert(Memo(

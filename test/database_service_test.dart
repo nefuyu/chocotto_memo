@@ -256,5 +256,30 @@ void main() {
         throwsException,
       );
     });
+
+    test('insertViewItemでposIndexが0未満はArgumentErrorとなる', () async {
+      expect(
+        () async => db.insertViewItem(
+          ViewItem(viewId: 1, memoId: memoId, posIndex: -1),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('insertViewItemでposIndexがgridCellCount以上はArgumentErrorとなる', () async {
+      expect(
+        () async => db.insertViewItem(
+          ViewItem(viewId: 1, memoId: memoId, posIndex: DatabaseService.gridCellCount),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('insertViewItemでposIndex = gridCellCount - 1（最大値）は成功する', () async {
+      final id = await db.insertViewItem(
+        ViewItem(viewId: 1, memoId: memoId, posIndex: DatabaseService.gridCellCount - 1),
+      );
+      expect(id, isNotNull);
+    });
   });
 }

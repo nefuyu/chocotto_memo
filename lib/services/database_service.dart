@@ -8,6 +8,9 @@ class DatabaseService {
   static const _tableName = 'memos';
   static const _dbVersion = 3;
 
+  /// グリッドの総セル数（3×3）。有効な posIndex は 0 以上 gridCellCount 未満。
+  static const int gridCellCount = 9;
+
   final String? path;
   Database? _db;
 
@@ -134,6 +137,13 @@ class DatabaseService {
   // --- ViewItems ---
 
   Future<int> insertViewItem(ViewItem item) async {
+    if (item.posIndex < 0 || item.posIndex >= gridCellCount) {
+      throw ArgumentError.value(
+        item.posIndex,
+        'posIndex',
+        '有効範囲は 0 以上 $gridCellCount 未満です',
+      );
+    }
     return await _db!.insert('view_items', item.toMap());
   }
 
