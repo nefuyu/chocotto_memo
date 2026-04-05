@@ -134,6 +134,68 @@ void main() {
     });
   });
 
+  group('HomeScreen - 無限スクロール', () {
+    testWidgets('メモが100件以下の場合はローディングインジケータが表示されない', (WidgetTester tester) async {
+      await db.insert(Memo(
+        title: 'メモ1',
+        content: '内容',
+        emoji: '📝',
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 1, 1),
+      ));
+
+      await pumpHomeScreen(tester);
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
+    testWidgets('スクロール末尾到達時に次のページが追加読み込みされる', (WidgetTester tester) async {
+      // 101件挿入してページをまたぐ状況を作る
+      for (var i = 0; i < 101; i++) {
+        await db.insert(Memo(
+          title: 'メモ$i',
+          content: '内容',
+          emoji: '📝',
+          createdAt: DateTime(2024, 1, 1, 0, 0, i),
+          updatedAt: DateTime(2024, 1, 1, 0, 0, i),
+        ));
+      }
+
+      await pumpHomeScreen(tester);
+
+      // 最初は100件分しか表示されていない
+      expect(db.getAllCallCount, 1);
+
+      // 末尾までスクロール
+      await tester.drag(find.byType(ListView), const Offset(0, -10000));
+      await tester.pumpAndSettle();
+
+      // 追加読み込みが発生している
+      expect(db.getAllCallCount, greaterThan(1));
+    });
+
+    testWidgets('全件読み込み済みの場合は追加読み込みされない', (WidgetTester tester) async {
+      for (var i = 0; i < 5; i++) {
+        await db.insert(Memo(
+          title: 'メモ$i',
+          content: '内容',
+          emoji: '📝',
+          createdAt: DateTime(2024, 1, 1, 0, 0, i),
+          updatedAt: DateTime(2024, 1, 1, 0, 0, i),
+        ));
+      }
+
+      await pumpHomeScreen(tester);
+      final countAfterInit = db.getAllCallCount;
+
+      await tester.drag(find.byType(ListView), const Offset(0, -10000));
+      await tester.pumpAndSettle();
+
+      // 全件読み込み済みのため追加読み込みなし
+      expect(db.getAllCallCount, countAfterInit);
+    });
+  });
+
   group('HomeScreen - 削除機能', () {
     testWidgets('メモを長押しするとコンテキストメニューが表示される', (WidgetTester tester) async {
       await db.insert(Memo(

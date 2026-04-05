@@ -165,6 +165,46 @@ void main() {
     });
   });
 
+  group('DatabaseService ページネーション', () {
+    Future<void> insertMemos(int count) async {
+      for (var i = 0; i < count; i++) {
+        await db.insert(Memo(
+          title: 'メモ$i',
+          content: '',
+          emoji: '📌',
+          createdAt: DateTime(2026, 1, 1, 0, 0, i),
+          updatedAt: DateTime(2026, 1, 1, 0, 0, i),
+        ));
+      }
+    }
+
+    test('limitを指定すると指定件数だけ返る', () async {
+      await insertMemos(5);
+      final result = await db.getAll(limit: 3);
+      expect(result.length, 3);
+    });
+
+    test('offsetを指定すると先頭をスキップして返る', () async {
+      await insertMemos(5);
+      final all = await db.getAll();
+      final paged = await db.getAll(limit: 3, offset: 2);
+      expect(paged.length, 3);
+      expect(paged.first.title, all[2].title);
+    });
+
+    test('offsetが総件数以上のときは空リストを返す', () async {
+      await insertMemos(3);
+      final result = await db.getAll(limit: 10, offset: 10);
+      expect(result, isEmpty);
+    });
+
+    test('limitなしの場合は全件返る', () async {
+      await insertMemos(5);
+      final result = await db.getAll();
+      expect(result.length, 5);
+    });
+  });
+
   group('View CRUD', () {
     test('insertViewとgetViewsでビューが取得できる', () async {
       final view = MemoView(id: 1, name: 'テストビュー', displayOrder: 0);

@@ -16,19 +16,57 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _pageSize = 100;
+
   List<Memo> _memos = [];
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
     _loadMemos();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMore();
+    }
+  }
+
   Future<void> _loadMemos() async {
-    final memos = await widget.db.getAll();
+    final memos = await widget.db.getAll(limit: _pageSize, offset: 0);
+    if (!mounted) return;
     setState(() {
       _memos = memos;
+      _hasMore = memos.length >= _pageSize;
     });
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      final next = await widget.db.getAll(limit: _pageSize, offset: _memos.length);
+      if (!mounted) return;
+      setState(() {
+        _memos.addAll(next);
+        _hasMore = next.length >= _pageSize;
+      });
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
   }
 
   Future<void> _navigateToEdit({Memo? memo}) async {
@@ -126,8 +164,17 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text('メモがありません。右下のボタンから作成しましょう'),
             )
           : ListView.builder(
-              itemCount: _memos.length,
+              controller: _scrollController,
+              itemCount: _memos.length + (_isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == _memos.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
                 final memo = _memos[index];
                 return GestureDetector(
                   onLongPressStart: (details) =>
